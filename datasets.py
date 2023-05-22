@@ -138,29 +138,3 @@ class ArtificialDataset(torch.utils.data.IterableDataset):
     def save(self, file_name):
         data = self.data.numpy()
         np.savetxt(file_name, data, delimiter=",")
-
-
-if __name__=="__main__":
-    seed = 13
-    np.random.seed(seed)
-    alpha_d = -2 + 4 * np.random.rand()
-    alpha_z = -2 + 4 * np.random.rand()
-    beta = -5 + 10 * np.random.rand()
-    gamma = -5 + 10 * np.random.rand()
-    n_samples = 1000
-
-    # dist_conf = ("Gaussian", {"loc": 0, "scale": 1})
-    # artific_data = ArtificialDataset(alpha_d, alpha_z, beta, gamma, n_samples, dist_conf, seed)
-    # file_name = "artificial_gaussian.csv"
-    # artific_data.save(file_name)
-
-    # dist_conf = ("Exponential", {"rate": 1/2})
-    # artific_data = ArtificialDataset(alpha_d, alpha_z, beta, gamma, n_samples, dist_conf, seed)
-    # file_name = "artificial_exponential.csv"
-    # artific_data.save(file_name)
-
-    file = "data/krueger/krueger_fast_food.csv"
-    file_path = os.path.join(os.getcwd(), file)
-    fastfood_data = FastFoodDataset(file)
-    file_name = "fastfood_krueger.csv"
-    fastfood_data.save(file_name)
