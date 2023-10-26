@@ -1,9 +1,8 @@
 import numpy as np
-import pandas as pd
 import math
 
-import os
 import torch
+from sklearn.linear_model import LinearRegression
 
 
 def compute_ratio(Z, D, deg=2):
@@ -80,3 +79,13 @@ def compute_beta_2proxies(W, Z, D, Y):
     numerator = covDY*covWZ - covDZ*covWY
     denominator = varD*covWZ - covDW*covDZ
     return numerator / denominator
+
+
+def tyc20(Z, W, D, Y):
+    data_tmp = np.hstack((Z[:, None], D[:, None]))
+    reg1 = LinearRegression().fit(data_tmp, W)
+    W_new = reg1.predict(data_tmp)
+
+    data_tmp = np.hstack((D[:, None], W_new[:, None]))
+    reg2 = LinearRegression().fit(data_tmp, Y)
+    return reg2.coef_[0]
