@@ -10,68 +10,6 @@ def transformation(x, scale=SCALE):
     return 10*torch.tanh(x/scale)
 
 
-class FastFoodDataset(torch.utils.data.IterableDataset):
-    def __init__(self, path, method="cross-moments", del_cols=None):
-        super().__init__()
-        self.method = method
-        self.data_pd = pd.read_csv(path)
-        if method=="cross-moments":
-            data_pre_treat = self.data_pd[self.data_pd["Treatment"]==0].reset_index()
-            data_post_treat = self.data_pd[self.data_pd["Treatment"]==1].reset_index()
-            assert (data_pre_treat["Group"]==data_post_treat["Group"]).all(), "Discrepancy in data"
-
-            self.Z = torch.from_numpy(data_pre_treat["Empl"].to_numpy())
-            self.D = torch.from_numpy(data_pre_treat["Group"].to_numpy(dtype=np.float32))
-            self.Y = torch.from_numpy(data_post_treat["Empl"].to_numpy())
-
-            mask = torch.logical_or(self.Z.isnan(), self.D.isnan())
-            mask = torch.logical_or(mask,  self.Y.isnan())
-            mask = torch.logical_not(mask)
-            self.Z = self.Z[mask]
-            self.D = self.D[mask]
-            self.Y = self.Y[mask]
-
-            self.Z -= torch.mean(self.Z)
-            self.D -= torch.mean(self.D)
-            self.Y -= torch.mean(self.Y)
-
-            self.n_samples = len(self.Z)
-
-            self.data = torch.cat((torch.unsqueeze(self.Z, 1), torch.unsqueeze(self.D, 1), torch.unsqueeze(self.Y, 1)), dim=1)
-        elif method=="regression":
-            if del_cols!=None:
-                self.data_pd.drop(del_cols, axis=1)
-            self.data_pd.dropna()
-            self.data_pd["PostTreatment"] = self.data_pd["Group"]*self.data_pd["Treatment"]
-
-            self.labels = self.data_pd["Empl"].to_numpy()
-            self.data = self.data_pd.drop(["Empl"], axis=1).to_numpy()
-            self.n_samples = len(self.labels)
-
-    def __len__(self):
-        return self.n_samples
-
-    def __iter__(self):
-        worker_info = torch.utils.data.get_worker_info()
-        if worker_info is None:  # single-process data loading, return the full iterator
-            iter_start = 0
-            iter_end = self.n_samples
-        else:  # in a worker process
-            # split workload
-            per_worker = int(math.ceil((self.end - self.start) / float(worker_info.num_workers)))
-            worker_id = worker_info.id
-            iter_start = self.start + worker_id * per_worker
-            iter_end = min(iter_start + per_worker, self.end)
-        if self.method=="cross-moments":
-            return iter(self.data[iter_start:iter_end])
-        elif self.method=="regression":
-            return zip(self.data[iter_start:iter_end], self.labels[iter_start:iter_end])
-
-    def save(self, file_name):
-        data = self.data.numpy()
-        np.savetxt(file_name, data, delimiter=",")
-
-
 class ArtificialDataset(torch.utils.data.IterableDataset):
     distributions = {
         "Exponential": torch.distributions.exponential.Exponential,
